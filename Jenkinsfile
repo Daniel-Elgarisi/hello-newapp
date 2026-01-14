@@ -9,7 +9,7 @@ podTemplate(
     containerTemplate(name: 'kaniko', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
-    secretVolume(mountPath: '/kaniko/.docker', secretName: 'docker-cred')
+    secretVolume(mountPath: '/kaniko/.docker/config.json', secretName: 'docker-cred')
   ]
 ) {
   node(POD_LABEL) {
@@ -21,10 +21,7 @@ podTemplate(
 
     stage('debug-docker-auth') {
       container('kaniko') {
-        sh 'echo "Listing /kaniko and /kaniko/.docker"'
-        sh 'ls -la /kaniko || true'
         sh 'ls -la /kaniko/.docker || true'
-        sh 'echo "Show config.json (first lines)"'
         sh 'cat /kaniko/.docker/config.json | head -n 20 || true'
       }
     }
