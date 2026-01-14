@@ -9,7 +9,11 @@ podTemplate(
     containerTemplate(name: 'kaniko', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
-    secretVolume(mountPath: '/kaniko/.docker/config.json', secretName: 'docker-cred')
+    // Writable Docker config directory
+    emptyDirVolume(mountPath: '/kaniko/.docker'),
+
+    // Secret mounted elsewhere (read-only)
+    secretVolume(mountPath: '/kaniko/.docker-secret', secretName: 'docker-cred')
   ]
 ) {
   node(POD_LABEL) {
@@ -19,10 +23,19 @@ podTemplate(
       }
     }
 
-    stage('debug-docker-auth') {
+    stage('prepare-docker-auth') {
       container('kaniko') {
-        sh 'ls -la /kaniko/.docker || true'
-        sh 'cat /kaniko/.docker/config.json | head -n 20 || true'
+        sh '''
+          echo "Secret files:"
+          ls -la /kaniko/.docker-secret
+
+          echo "Copying docker auth to writable config.json"
+          cp /kaniko/.docker-secret/.dockerconfigjson /kaniko/.docker/config.json
+
+          echo "Verify config.json exists:"
+          ls -la /kaniko/.docker
+          head -n 5 /kaniko/.docker/config.json
+        '''
       }
     }
 
