@@ -15,7 +15,7 @@ podTemplate(
       image: 'gcr.io/kaniko-project/executor:v1.23.0-debug',
       command: '/busybox/cat',
       ttyEnabled: true
-    )
+    ),
   ],
   volumes: [
     secretVolume(
