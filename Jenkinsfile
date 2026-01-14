@@ -26,18 +26,29 @@ podTemplate(
     stage('prepare-docker-auth') {
       container('kaniko') {
         sh '''
-          echo "Secret files:"
-          ls -la /kaniko/.docker-secret
-
           echo "Copying docker auth to writable config.json"
           cp /kaniko/.docker-secret/.dockerconfigjson /kaniko/.docker/config.json
 
           echo "Verify config.json exists:"
           ls -la /kaniko/.docker
-          head -n 5 /kaniko/.docker/config.json
         '''
       }
     }
+
+    stage('push-yaml') {
+    container('jnlp') {
+        withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+            sh '''
+                git config user.email "jenkins@example.com"
+                git config user.name "Jenkins"
+                git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/elevy99927/hello-newapp.git
+                git add *.yaml *.yml
+                git commit -m "Update YAML files - Build ${BUILD_NUMBER}"
+                git push origin HEAD:${BRANCH_NAME}
+            '''
+        }
+    }
+}
 
     stage('build-and-push') {
       container('kaniko') {
