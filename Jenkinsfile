@@ -39,12 +39,25 @@ podTemplate(
     container('jnlp') {
         withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
             sh '''
+                set -e
+
                 git config user.email "jenkins@example.com"
                 git config user.name "Jenkins"
-                git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/elevy99927/hello-newapp.git
-                git add *.yaml *.yml
-                git commit -m "Update YAML files - Build ${BUILD_NUMBER}"
-                git push origin HEAD:${BRANCH_NAME}
+
+                git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Daniel-Elgarisi/hello-newapp.git
+
+                if ls *.yaml *.yml 1>/dev/null 2>&1; then
+                  git add *.yaml *.yml
+
+                  if git diff --cached --quiet; then
+                    echo "No YAML changes to commit"
+                  else
+                    git commit -m "Update YAML files - Build ${BUILD_NUMBER}"
+                    git push origin HEAD:${BRANCH_NAME}
+                  fi
+                else
+                  echo "No YAML files found, skipping push-yaml stage"
+                fi
             '''
         }
     }
