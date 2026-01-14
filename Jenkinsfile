@@ -5,30 +5,27 @@ def apptag = "${env.BUILD_NUMBER}"
 
 podTemplate(
   containers: [
-    containerTemplate(
-      name: 'jnlp',
-      image: 'jenkins/inbound-agent:latest',
-      ttyEnabled: true
-    ),
-    containerTemplate(
-      name: 'kaniko',
-      image: 'gcr.io/kaniko-project/executor:v1.23.0-debug',
-      command: '/busybox/cat',
-      ttyEnabled: true
-    ),
+    containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent:latest', ttyEnabled: true),
+    containerTemplate(name: 'kaniko', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
-    secretVolume(
-      mountPath: '/kaniko/.docker',
-      secretName: 'docker-cred'
-    )
+    secretVolume(mountPath: '/kaniko/.docker', secretName: 'docker-cred')
   ]
 ) {
   node(POD_LABEL) {
-
     stage('checkout') {
       container('jnlp') {
         checkout scm
+      }
+    }
+
+    stage('debug-docker-auth') {
+      container('kaniko') {
+        sh 'echo "Listing /kaniko and /kaniko/.docker"'
+        sh 'ls -la /kaniko || true'
+        sh 'ls -la /kaniko/.docker || true'
+        sh 'echo "Show config.json (first lines)"'
+        sh 'cat /kaniko/.docker/config.json | head -n 20 || true'
       }
     }
 
@@ -42,6 +39,5 @@ podTemplate(
         """
       }
     }
-
   }
 }
