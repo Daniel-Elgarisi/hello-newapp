@@ -30,8 +30,29 @@ podTemplate(containers: [
 
         stage('deploy') {
             container('jnlp') {
-                echo "helm install myapp"
-            }
+                withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
+                sh """
+                    # Clone the argo repo
+                    git clone https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+                    cd argo-demo-repo
+                    git checkout application
+
+                    # Template the helm chart with the new image tag
+                    helm template hello-newapp ./helm \
+                        --set image.repository=${appimage} \
+                        --set image.tag=${apptag} \
+                        > app-1/k8s-qa/hello-newapp.yaml
+
+                    # Push to argo repo
+                    git config user.email "eyal@levys.co.il"
+                    git config user.name "Jenkins with Argo"
+                    git add app-1/k8s-qa/hello-newapp.yaml
+                    git commit -m "Deploy ${appname}:${apptag}"
+                    git push origin application
+                """
         }
+    }
+}
+
     }
 }
