@@ -39,7 +39,7 @@ podTemplate(containers: [
                     git checkout application
 
                     # Template the helm chart with the new image tag
-                    helm template hello-newapp ./helm \
+                    helm template hello-newapp ./chart \
                         --set image.repository=${appimage} \
                         --set image.tag=${apptag} \
                         > app-1/k8s-qa/hello-newapp.yaml
