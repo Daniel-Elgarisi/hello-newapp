@@ -11,7 +11,7 @@ podTemplate(containers: [
       containerTemplate(name: 'docker', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
-     configMapVolume(mountPath: '/kaniko/.docker/', configMapName: 'docker-cred')
+     secretVolume(mountPath: '/kaniko/.docker/', secretName: 'docker-cred')
   ])  {
     node(POD_LABEL) {
         stage('checkout') {
