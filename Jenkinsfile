@@ -8,6 +8,7 @@ def apptag = "${build}"
 
 podTemplate(containers: [
       containerTemplate(name: 'jnlp', image: 'jenkins/inbound-agent', ttyEnabled: true),
+      containerTemplate(name: 'deployer', image: 'alpine/helm:latest', command: 'cat', ttyEnabled: true),
       containerTemplate(name: 'docker', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
@@ -29,7 +30,7 @@ podTemplate(containers: [
         }
 
         stage('deploy') {
-            container('jnlp') {
+            container('deployer') {
                 withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
                 sh """
                     # Clone the argo repo
