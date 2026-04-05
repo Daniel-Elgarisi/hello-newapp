@@ -12,7 +12,9 @@ podTemplate(containers: [
       containerTemplate(name: 'docker', image: 'gcr.io/kaniko-project/executor:v1.23.0-debug', command: '/busybox/cat', ttyEnabled: true)
   ],
   volumes: [
-     secretVolume(mountPath: '/kaniko/.docker/', secretName: 'docker-cred')
+     secretVolume(mountPath: '/kaniko/.docker/', secretName: 'docker-cred'),
+     secretVolume(mountPath: '/var/run/secrets/github-token', secretName: 'github-token')
+
   ])  {
     node(POD_LABEL) {
         stage('checkout') {
@@ -31,15 +33,15 @@ podTemplate(containers: [
 
         stage('deploy') {
             container('deployer') {
-                withCredentials([string(credentialsId: 'github-token', variable: 'GIT_TOKEN')]) {
                 sh """
                     # Clone the argo repo
-                    git clone https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
-                    cd argo-demo-repo
-                    git checkout application
+			GIT_TOKEN=$(cat /var/run/secrets/github-token/token)
+			git remote set-url origin https://${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+			git push origin application
+
 
                     # Template the helm chart with the new image tag
-                    helm template hello-newapp ./chart \
+                    helm template hello-newapp ${env.WORKSPACE}/chart \
                         --set image.repository=${appimage} \
                         --set image.tag=${apptag} \
                         > app-1/k8s-qa/hello-newapp.yaml
@@ -53,7 +55,6 @@ podTemplate(containers: [
                 """
         }
     }
-}
 
     }
 }
