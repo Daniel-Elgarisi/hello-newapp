@@ -9,9 +9,10 @@ database_test:
 service_type: NodePort
 replicas: 1
 
+image:
+  repository: 
+  tag: "red"
 
 pod:
-  image: "elevy99927/color"
-  tag: "red"
   target_port: 8080
   port: 80

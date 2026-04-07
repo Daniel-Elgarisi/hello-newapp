@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }} #from values
-        image: {{ .Values.pod.image}}:{{ .Values.pod.tag }} #from values
+        image: {{ .Values.image.repository}}:{{ .Values.image.tag }} #from values
         ports:
         - containerPort: {{ .Values.pod.target_port }}
 
