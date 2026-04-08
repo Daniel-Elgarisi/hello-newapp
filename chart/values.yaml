@@ -16,3 +16,11 @@ image:
 pod:
   target_port: 8080
   port: 80
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus
+    app: monitoring
+  interval: "30s"
+  path: "/metrics"
