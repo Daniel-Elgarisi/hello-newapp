@@ -23,6 +23,31 @@ podTemplate(containers: [
                 checkout scm
             }
         }
+                stage('calc-version') {
+            container('deployer') {
+                script {
+                    def currentVersion = sh(
+                        script: """#!/bin/bash
+                            TOKEN=\$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${appimage}:pull" | jq -r .token)
+                            DIGEST=\$(curl -s -H "Authorization: Bearer \$TOKEN" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/${appimage}/manifests/latest" | jq -r '.config.digest // empty')
+                            if [ -z "\$DIGEST" ]; then
+                                echo "1"
+                            else
+                                CURRENT=\$(curl -s -H "Authorization: Bearer \$TOKEN" -H "Accept: application/vnd.docker.container.image.v1+json" "https://registry-1.docker.io/v2/${appimage}/blobs/\$DIGEST" | jq -r '.config.Labels.VERSION // empty')
+                                if [ -z "\$CURRENT" ]; then
+                                    echo "1"
+                                else
+                                    echo \$((\$CURRENT + 1))
+                                fi
+                            fi
+                        """,
+                        returnStdout: true
+                    ).trim()
+                    env.VERSION = currentVersion
+                }
+                echo "Next VERSION: ${env.VERSION}"
+            }
+        }
 
         stage('build') {
             container('docker') {
@@ -30,29 +55,29 @@ podTemplate(containers: [
                 sh "/kaniko/executor --force --context=dir://${env.WORKSPACE} --destination=${appimage}:${apptag}"
             }
         }
-stage('deploy') {
-    container('deployer') {
-        sh """
-            apk add --no-cache git
-            GIT_TOKEN=\$(cat /var/run/secrets/github-token/token)
-            git clone https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
-            cd argo-demo-repo
-            git checkout application
+        stage('deploy') {
+            container('deployer') {
+                sh """
+                    apk add --no-cache git
+                    GIT_TOKEN=\$(cat /var/run/secrets/github-token/token)
+                    git clone https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+                    cd argo-demo-repo
+                    git checkout application
 
-            helm template hello-newapp ${env.WORKSPACE}/chart \
-                --set image.repository=${appimage} \
-                --set image.tag=${apptag} \
-                > app-1/k8s-qa/hello-newapp.yaml
+                    helm template hello-newapp ${env.WORKSPACE}/chart \
+                        --set image.repository=${appimage} \
+                        --set image.tag=${apptag} \
+                        > app-1/k8s-qa/hello-newapp.yaml
 
-            git config user.email "eyal@levys.co.il"
-            git config user.name "Jenkins with Argo"
-            git add app-1/k8s-qa/hello-newapp.yaml
-            git commit -m "Deploy ${appname}:${apptag}"
-            git remote set-url origin https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
-            git push origin application
-        """
-    }
-}
+                    git config user.email "eyal@levys.co.il"
+                    git config user.name "Jenkins with Argo"
+                    git add app-1/k8s-qa/hello-newapp.yaml
+                    git commit -m "Deploy ${appname}:${apptag}"
+                    git remote set-url origin https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+                    git push origin application
+                """
+            }
+        }
 
 
         }
