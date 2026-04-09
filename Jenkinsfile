@@ -78,6 +78,22 @@ podTemplate(containers: [
                 """
             }
         }
+        stage('add-dashboard') {
+            container('deployer') {
+                sh """
+                    GIT_TOKEN=\$(cat /var/run/secrets/github-token/token)
+                    cd argo-demo-repo
+                    git pull origin application
+
+                    mkdir -p grafana-dashboards
+                    cp ${env.WORKSPACE}/grafana-dashboard.json grafana-dashboards/${appname}.json
+
+                    git add grafana-dashboards/${appname}.json
+                    git commit -m "Update Grafana dashboard for ${appname}" || echo "No dashboard changes to commit"
+                    git push origin application
+                """
+            }
+        }
     }
 
   }
