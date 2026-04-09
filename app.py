@@ -1,12 +1,61 @@
+from flask import Flask, Response
 from prometheus_client import (
     Counter, Gauge, Summary, Histogram, Info, Enum,
-    CollectorRegistry, start_http_server, Metric,
+    CollectorRegistry, Metric, generate_latest, CONTENT_TYPE_LATEST,
     REGISTRY
 )
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 import time
 import random
 import threading
+
+app = Flask(__name__)
+
+APP_INFO = {
+    "git_repo": "https://github.com/elevy99927/hello-newapp/tree/argo-solution",
+    "git_ops": "https://github.com/elevy99927/argo-demo-repo/tree/application",
+    "author": "Eyal Levy",
+    "email": "eyal@levys.co.il",
+}
+
+
+@app.route('/')
+def index():
+    # Gather sample counter values
+    rows = ""
+    for method in ['GET', 'POST', 'PUT', 'DELETE']:
+        for ep in ['/api/users', '/api/orders', '/api/products']:
+            val = http_requests_total.labels(method=method, endpoint=ep)._value.get()
+            rows += f"<tr><td>{method}</td><td>{ep}</td><td>{val}</td></tr>"
+
+    err_rows = ""
+    for etype in ['timeout', 'connection', 'validation', 'auth']:
+        for sev in ['low', 'medium', 'high']:
+            val = error_total.labels(error_type=etype, severity=sev)._value.get()
+            err_rows += f"<tr><td>{etype}</td><td>{sev}</td><td>{val}</td></tr>"
+
+    return (
+        "<h1>Sample Counters</h1>"
+        "<h2>HTTP Requests</h2>"
+        "<table border='1' cellpadding='5' cellspacing='0'>"
+        "<tr><th>Method</th><th>Endpoint</th><th>Count</th></tr>"
+        f"{rows}</table>"
+        "<h2>Errors</h2>"
+        "<table border='1' cellpadding='5' cellspacing='0'>"
+        "<tr><th>Type</th><th>Severity</th><th>Count</th></tr>"
+        f"{err_rows}</table>"
+        "<hr>"
+        f"<h1>App Info</h1>"
+        f"<p>Git Repo: <a href=\"{APP_INFO['git_repo']}\">{APP_INFO['git_repo']}</a></p>"
+        f"<p>GitOps: <a href=\"{APP_INFO['git_ops']}\">{APP_INFO['git_ops']}</a></p>"
+        f"<p>Author: {APP_INFO['author']}</p>"
+        f"<p>Email: {APP_INFO['email']}</p>"
+    )
+
+
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(REGISTRY), mimetype=CONTENT_TYPE_LATEST)
 
 # 1. Counter
 http_requests_total = Counter(
@@ -130,12 +179,10 @@ def simulate_traffic():
 
 
 if __name__ == '__main__':
-    print("Starting metrics server on port 8000...")
-    start_http_server(8000)
-    print("Metrics available at http://localhost:8000/metrics")
-
     traffic_thread = threading.Thread(target=simulate_traffic, daemon=True)
     traffic_thread.start()
 
-    while True:
-        time.sleep(1)
+    print("Starting server on port 8000...")
+    print("App info at http://localhost:8000/")
+    print("Metrics at http://localhost:8000/metrics")
+    app.run(host='0.0.0.0', port=8000)
