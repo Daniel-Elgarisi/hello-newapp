@@ -2,7 +2,7 @@ def branch = env.BRANCH_NAME
 def build = env.BUILD_NUMBER
 def appname = "helloworld"
 def artifactory = "docker.io" 
-def repo = "elevy99927" 
+def repo = "danielelgarisi" 
 def appimage = "${repo}/${appname}"
 def apptag = "${build}"
 
@@ -60,7 +60,7 @@ podTemplate(containers: [
                 sh """
                     apk add --no-cache git
                     GIT_TOKEN=\$(cat /var/run/secrets/github-token/token)
-                    git clone https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+                    git clone https://\${GIT_TOKEN}@github.com/Daniel-Elgarisi/argo-demo-repo.git
                     cd argo-demo-repo
                     git checkout application
 
@@ -69,11 +69,11 @@ podTemplate(containers: [
                         --set image.tag=${apptag} \
                         > app-1/k8s-qa/hello-newapp.yaml
 
-                    git config user.email "eyal@levys.co.il"
+                    git config user.email "danielelgarisi7@gmail.com"
                     git config user.name "Jenkins with Argo"
                     git add app-1/k8s-qa/hello-newapp.yaml
                     git commit -m "Deploy ${appname}:${apptag}"
-                    git remote set-url origin https://\${GIT_TOKEN}@github.com/elevy99927/argo-demo-repo.git
+                    git remote set-url origin https://\${GIT_TOKEN}@github.com/Daniel-Elgarisi/argo-demo-repo.git
                     git push origin application
                 """
             }
